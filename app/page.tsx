@@ -3,7 +3,7 @@
 import {Grid, Box, Button} from "@mui/material";
 import {useState} from "react";
 
-const loginUser = async (setText: (e: string) => void, setError: (e: string) => void) => {
+const loginUser = async (setText: (e: string) => void, setToken: (e: string) => void,  setError: (e: string) => void) => {
   try {
     let res = await fetch("/v1/user_login", {
         method: "POST",
@@ -14,9 +14,19 @@ const loginUser = async (setText: (e: string) => void, setError: (e: string) => 
 
     if(res.status === 200) {
       let json = await res.json()
+
+      if(json?.token === undefined) {
+        setText("")
+        setError(`Failed to login user: token not returned`)
+        return
+      }
+
       setError("")
-      setText(`Success returned user: ${JSON.stringify(json)}`)
+      setToken(json.token)
+      setText(`User logged in, click button to download token`)
+
     } else {
+
       setText("")
       setError(`Failed to login user: ${res.status}`)
     }
@@ -52,10 +62,27 @@ const listUsers = async (setText: (e: string) => void, setError: (e: string) => 
   }
 }
 
+const downloadToken = async (token: string, setText: (e: string) => void, setError: (e: string) => void) => {
+  try {
+    const element = document.createElement("a");
+    const file = new Blob([token], {type: 'text/plain'});
+    element.href = URL.createObjectURL(file);
+    element.download = "ap_placement.tkn";
+    document.body.appendChild(element); // Required for this to work in FireFox
+    element.click()
+  } catch (e) {
+    setText("")
+    setError((e as Error).message)
+  }
+
+  setText("Successfully downloaded token, checks downloads folder")
+}
+
 export default function Home() {
 
   const [text, setText] = useState<string>("");
   const [error, setError] = useState<string>("");
+  const [token, setToken] = useState<string>("");
 
   return (
     <Box display={"flex"} justifyContent={"center"} pt={4}>
@@ -78,9 +105,18 @@ export default function Home() {
           <Grid item xs={12}>
             <Box p={1}></Box>
           </Grid>
-          <Grid item xs={3}>
-            <Button variant={"outlined"} onClick={() => loginUser(setText, setError)}>Login User</Button>
-          </Grid>
+          { token &&
+              <Grid item xs={3}>
+                <Button variant={"contained"} onClick={() => downloadToken(token, setText, setError)}>
+                  Download Token
+                </Button>
+              </Grid>
+          }
+          { !token &&
+              <Grid item xs={3}>
+                <Button variant={"outlined"} onClick={() => loginUser(setText, setToken, setError)}>Login User</Button>
+              </Grid>
+          }
           <Grid item xs={3}>
             <Button variant={"outlined"} onClick={() => listUsers(setText, setError)}>List Users</Button>
           </Grid>
