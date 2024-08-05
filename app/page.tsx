@@ -1,11 +1,111 @@
 "use client"
 
-import {Grid, Box, Button} from "@mui/material";
+import {Grid, Box, Button, Typography, Paper, Alert, Snackbar} from "@mui/material";
 import {useState} from "react";
+
+// const API_URL = "http://127.0.0.1:3000/api"
+const API_URL = "/v1"
+
+export default function Home() {
+
+  const [text, setText] = useState<string>("");
+  const [error, setError] = useState<string>("");
+  const [token, setToken] = useState<string>("");
+  const [users, setUsers] = useState<User[]>([]);
+
+  return (
+      <Box display={"flex"} justifyContent={"center"} pt={4}>
+        <Box maxWidth={"1000px"} width={"100%"}>
+          <Grid container justifyContent={"center"}>
+            { token &&
+                <Grid item xs={3}>
+                  <Button variant={"contained"} onClick={() => downloadToken(token, setText, setError)}>
+                    Download Token
+                  </Button>
+                </Grid>
+            }
+            { !token &&
+                <Grid item xs={3}>
+                  <Button variant={"outlined"} onClick={() => loginUser(setText, setToken, setError)}>Login User</Button>
+                </Grid>
+            }
+            <Grid item xs={3}>
+              <Button variant={"outlined"} onClick={() => users.length == 0 ? listUsers(setUsers, setError) : setUsers([])}>List Users</Button>
+            </Grid>
+            { text &&
+                <Snackbar open={open} onClose={() => setText("")}>
+                  <Alert
+                      onClose={() => setText("")}
+                      severity="success"
+                      variant="filled"
+                      sx={{ width: '100%' }}
+                  >
+                    {text}
+                  </Alert>
+                </Snackbar>
+            }
+            { error &&
+                <Snackbar open={open} onClose={() => setError("")}>
+                  <Alert
+                      onClose={() => setError("")}
+                      severity="error"
+                      variant="filled"
+                      sx={{ width: '100%' }}
+                  >
+                    {error}
+                  </Alert>
+                </Snackbar>
+            }
+            { users.length != 0 &&
+                <Grid item xs={12}>
+                  <Grid container spacing={1}>
+                    <Grid item xs={12}>
+                      <UserCard username={"Username"} localAccount={"Local Account"} accountCreated={"Account Created"} tokenExpires={"Token Expires"} />
+                    </Grid>
+                    { users.map((user) => <Grid item xs={12}><UserCard {...user} /></Grid>) }
+                  </Grid>
+                </Grid>
+            }
+          </Grid>
+        </Box>
+      </Box>
+  );
+}
+
+interface User {
+  username: string;
+  localAccount: string;
+  accountCreated: string;
+  tokenExpires: string;
+}
+
+const UserCard = ({...props}: User) => {
+  return (
+      <Paper m={1}>
+        <Box p={1}>
+          <Grid container spacing={2}>
+            <Grid item xs={3}>
+              <Typography variant={"body1"}>{props.username}</Typography>
+            </Grid>
+            <Grid item xs={3}>
+              <Typography variant={"body1"}>{props.localAccount}</Typography>
+            </Grid>
+            <Grid item xs={3}>
+              <Typography variant={"body1"}>{props.accountCreated}</Typography>
+            </Grid>
+            <Grid item xs={3}>
+              <Typography variant={"body1"}>{props.tokenExpires}</Typography>
+            </Grid>
+          </Grid>
+        </Box>
+
+      </Paper>
+  )
+}
 
 const loginUser = async (setText: (e: string) => void, setToken: (e: string) => void,  setError: (e: string) => void) => {
   try {
-    let res = await fetch("/v1/user_login", {
+    let res = await fetch(API_URL + "/user_login", {
         method: "POST",
         headers: {
           "Authorization": "Basic " + btoa("testuser:testpassword")
@@ -37,10 +137,10 @@ const loginUser = async (setText: (e: string) => void, setToken: (e: string) => 
   }
 }
 
-const listUsers = async (setText: (e: string) => void, setError: (e: string) => void) => {
+const listUsers = async (setUsers: (u: User[]) => void, setError: (e: string) => void) => {
 
   try {
-    let res = await fetch("/v1/user_list", {
+    let res = await fetch(API_URL + "/user_list", {
       method: "GET",
       headers: {
         "Authorization": "Basic " + btoa("testuser:testpassword")
@@ -50,14 +150,14 @@ const listUsers = async (setText: (e: string) => void, setError: (e: string) => 
     if(res.status === 200) {
       let json = await res.json()
       setError("")
-      setText(`Success returned users: ${JSON.stringify(json)}`)
+      setUsers(json)
     } else {
-      setText("")
+      setUsers([])
       setError(`Failed to list users: ${res.status}`)
     }
 
   } catch (e) {
-    setText("")
+    setUsers([])
     setError((e as Error).message)
   }
 }
@@ -78,50 +178,4 @@ const downloadToken = async (token: string, setText: (e: string) => void, setErr
   setText("Successfully downloaded token, checks downloads folder")
 }
 
-export default function Home() {
 
-  const [text, setText] = useState<string>("");
-  const [error, setError] = useState<string>("");
-  const [token, setToken] = useState<string>("");
-
-  return (
-    <Box display={"flex"} justifyContent={"center"} pt={4}>
-      <Box maxWidth={"1000px"} width={"100%"}>
-        <Grid container justifyContent={"center"}>
-          { text &&
-              <Grid item xs={12}>
-                <Box p={2} borderRadius={2} bgcolor={"#8080804a"} border={"green 5px solid"}>
-                  {text}
-                </Box>
-              </Grid>
-          }
-          { error &&
-              <Grid item xs={12}>
-                <Box p={2} borderRadius={2} bgcolor={"#8080804a"} border={"red 5px solid"}>
-                  {error}
-                </Box>
-              </Grid>
-          }
-          <Grid item xs={12}>
-            <Box p={1}></Box>
-          </Grid>
-          { token &&
-              <Grid item xs={3}>
-                <Button variant={"contained"} onClick={() => downloadToken(token, setText, setError)}>
-                  Download Token
-                </Button>
-              </Grid>
-          }
-          { !token &&
-              <Grid item xs={3}>
-                <Button variant={"outlined"} onClick={() => loginUser(setText, setToken, setError)}>Login User</Button>
-              </Grid>
-          }
-          <Grid item xs={3}>
-            <Button variant={"outlined"} onClick={() => listUsers(setText, setError)}>List Users</Button>
-          </Grid>
-        </Grid>
-      </Box>
-    </Box>
-  );
-}

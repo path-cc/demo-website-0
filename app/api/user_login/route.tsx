@@ -1,4 +1,11 @@
-
+export async function OPTIONS() {
+	return new Response(null, {
+		headers: {
+			"Access-Control-Allow-Origin": "*",
+			"Access-Control-Allow-Headers": "Authorization"
+		}
+	});
+}
 
 export async function POST(req: Request) {
 
@@ -10,7 +17,8 @@ export async function POST(req: Request) {
 		if (username === 'testuser' && password === 'testpassword') {
 			// User is authenticated
 			const res = Response.json({"token": "\<token string\>", "details": "\<decoded jwt\>"});
-			return res;
+			res.headers.set("Access-Control-Allow-Origin", "*");
+			return res
 		}
 	}
 	return Response.unauthorized("Unauthorized");
